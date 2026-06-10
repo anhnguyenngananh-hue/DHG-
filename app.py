@@ -391,13 +391,11 @@ elif page == "💬 Tư Vấn AI":
             st.markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
 
-        try:
-            GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
-        except:
-            GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-        if not GEMINI_API_KEY:
-            st.error("❌ Chưa cấu hình GEMINI_API_KEY.")
-            st.stop()
+        GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    st.error("❌ Chưa cấu hình GEMINI_API_KEY trong Streamlit Secrets.")
+    st.stop()
 
         knowledge_base = df_products.to_string(index=False) if not df_products.empty else "Không có dữ liệu."
 
