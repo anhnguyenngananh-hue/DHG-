@@ -431,7 +431,7 @@ elif page == "💬 Tư Vấn AI":
                 answer = "Mình chưa xác định được sản phẩm nào. Bạn hãy mô tả tình trạng da để mình tư vấn nhé!"
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
-            st.rerun()
+            
 
     else:
             prompt_he_thong = f"""
