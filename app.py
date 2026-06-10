@@ -391,7 +391,7 @@ elif page == "💬 Tư Vấn AI":
             st.markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # === DÁN ĐOẠN NÀY VÀO THAY THẾ ===
+   # === THAY THẾ TOÀN BỘ ĐOẠN CUỐI FILE BẰNG ĐOẠN NÀY ===
     GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
 
     if not GEMINI_API_KEY:
@@ -399,84 +399,86 @@ elif page == "💬 Tư Vấn AI":
     else:
         knowledge_base = df_products.to_string(index=False) if not df_products.empty else "Không có dữ liệu."
 
-        AGREE_KEYWORDS = [
-            "thêm vào giỏ", "cho vào giỏ", "bỏ vào giỏ", "thêm vào",
-            "thêm đi", "lấy đi", "lấy hết", "mua đi", "mua hết",
-            "chốt đi", "chốt luôn", "lấy cho chị", "lấy cho mình",
-            "lấy cho t", "thêm cho t", "add đi", "lấy luôn", "mua luôn",
-            "cho chị", "cho mình", "thêm luôn", "ok thêm", "ừ thêm",
-            "thêm cái đó", "thêm mấy cái", "thêm sp", "thêm sản phẩm",
-            "lấy sp", "muốn mua"
-        ]
+        # CHỈ XỬ LÝ KHI BIẾN PROMPT THỰC SỰ CÓ DỮ LIỆU ĐƯỢC GỬI LÊN
+        if prompt:
+            AGREE_KEYWORDS = [
+                "thêm vào giỏ", "cho vào giỏ", "bỏ vào giỏ", "thêm vào",
+                "thêm đi", "lấy đi", "lấy hết", "mua đi", "mua hết",
+                "chốt đi", "chốt luôn", "lấy cho chị", "lấy cho mình",
+                "lấy cho t", "thêm cho t", "add đi", "lấy luôn", "mua luôn",
+                "cho chị", "cho mình", "thêm luôn", "ok thêm", "ừ thêm",
+                "thêm cái đó", "thêm mấy cái", "thêm sp", "thêm sản phẩm",
+                "lấy sp", "muốn mua"
+            ]
 
-        is_agreeing = False
-        if prompt and len(prompt.strip()) <= 30:
-            is_agreeing = any(word in prompt.lower() for word in AGREE_KEYWORDS)
+            is_agreeing = False
+            if len(prompt.strip()) <= 30:
+                is_agreeing = any(word in prompt.lower() for word in AGREE_KEYWORDS)
 
-        if not is_agreeing:
-            st.session_state.recommended_products = []
+            if not is_agreeing:
+                st.session_state.recommended_products = []
 
-        # Tình huống 1: Khách đồng ý chốt đơn sản phẩm đã gợi ý
-        if is_agreeing and st.session_state.recommended_products:
-            with st.chat_message("assistant"):
-                with st.spinner("Đang thêm vào giỏ hàng..."):
-                    result_msg = add_product_to_cart(st.session_state.recommended_products)
-                    answer = f"{result_msg} Bạn kiểm tra giỏ hàng nhé! 🛒"
+            # Tình huống 1: Khách đồng ý chốt đơn sản phẩm đã gợi ý
+            if is_agreeing and st.session_state.recommended_products:
+                with st.chat_message("assistant"):
+                    with st.spinner("Đang thêm vào giỏ hàng..."):
+                        result_msg = add_product_to_cart(st.session_state.recommended_products)
+                        answer = f"{result_msg} Bạn kiểm tra giỏ hàng nhé! 🛒"
+                        st.markdown(answer)
+                        st.session_state.messages.append({"role": "assistant", "content": answer})
+                        st.session_state.recommended_products = []
+                st.rerun()
+
+            # Tình huống 2: Khách đòi mua nhưng chưa có sản phẩm gợi ý trước đó
+            elif is_agreeing and not st.session_state.recommended_products:
+                with st.chat_message("assistant"):
+                    answer = "Mình chưa xác định được sản phẩm nào. Bạn hãy mô tả tình trạng da để mình tư vấn nhé!"
                     st.markdown(answer)
                     st.session_state.messages.append({"role": "assistant", "content": answer})
-                    st.session_state.recommended_products = []
-            st.rerun()
 
-        # Tình huống 2: Khách đòi mua nhưng chưa có sản phẩm gợi ý trước đó
-        elif is_agreeing and not st.session_state.recommended_products:
-            with st.chat_message("assistant"):
-                answer = "Mình chưa xác định được sản phẩm nào. Bạn hãy mô tả tình trạng da để mình tư vấn nhé!"
-                st.markdown(answer)
-                st.session_state.messages.append({"role": "assistant", "content": answer})
-
-        # Tình huống 3: Gọi AI tư vấn Skincare bình thường
-        else:
-            prompt_he_thong = f"""
-            Bạn là chuyên gia tư vấn Skincare chuyên nghiệp. Khách tên {user_name}, {user_age} tuổi, loại da: {user_skin_type}.
-            {"Khách chưa biết loại da của mình - hãy hỏi thêm về tình trạng da (bóng dầu, khô, mụn...) để tư vấn phù hợp, hoặc gợi ý sản phẩm phù hợp cho nhiều loại da." if user_skin_type == "Chưa xác định loại da" else ""}
-            DANH SÁCH SẢN PHẨM TRONG KHO:
-            {knowledge_base}
-            
-            NHIỆM VỤ:
-            1. Tư vấn routine khoa học ngắn gọn bằng sản phẩm có sẵn ở trên.
-            2. Cuối câu hỏi KHÁCH CÓ HÀI LÒNG VÀ MUỐN THÊM CÁC SẢN PHẨM NÀY VÀO GIỎ HÀNG KHÔNG.
-            3. Xuất ra một dòng cuối cùng ở định dạng chính xác như sau: [RECOMMEND: tên_sản_phẩm_1, tên_sản_phẩm_2] để hệ thống ghi nhớ.
-            """
-
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty() # Giữ chỗ hiển thị chữ trực tiếp
-                with st.spinner("AI đang phân tích da..."):
-                    try:
-                        genai.configure(api_key=GEMINI_API_KEY)
-                        model = genai.GenerativeModel(
-                            model_name='gemini-2.5-flash',
-                            system_instruction=prompt_he_thong
-                        )
-                        response = generate_content_with_retries(
-                            model=model,
-                            contents=prompt,
-                            config=types.GenerationConfig(temperature=0.4),
-                            max_retries=3
-                        )
-                        raw_answer = getattr(response, 'text', str(response))
-                        
-                        # Bóc tách tag sản phẩm
-                        match_rec = re.search(r'\[RECOMMEND:\s*(.*?)\]', raw_answer)
-                        if match_rec:
-                            products_extracted = [p.strip() for p in match_rec.group(1).split(',')]
-                            st.session_state.recommended_products = products_extracted
-                            clean_answer = re.sub(r'\[RECOMMEND:\s*(.*?)\]', '', raw_answer).strip()
-                        else:
-                            clean_answer = raw_answer
-                        
-                        # Render câu trả lời sạch lên màn hình và lưu vào bộ nhớ, không dùng rerun gây nuốt chữ
-                        message_placeholder.markdown(clean_answer)
-                        st.session_state.messages.append({"role": "assistant", "content": clean_answer})
-                        
-                    except Exception as e:
-                        message_placeholder.error(f"Lỗi kết nối AI: {e}. Thử lại hoặc xóa lịch sử chat nhé!")
+            # Tình huống 3: Gọi AI tư vấn Skincare bình thường
+            else:
+                with st.chat_message("assistant"):
+                    message_placeholder = st.empty() # Giữ chỗ tránh lỗi giao diện
+                    with st.spinner("AI đang phân tích da..."):
+                        try:
+                            prompt_he_thong = f"""
+                            Bạn là chuyên gia tư vấn Skincare chuyên nghiệp. Khách tên {user_name}, {user_age} tuổi, loại da: {user_skin_type}.
+                            {"Khách chưa biết loại da của mình - hãy hỏi thêm về tình trạng da (bóng dầu, khô, mụn...) để tư vấn phù hợp, hoặc gợi ý sản phẩm phù hợp cho nhiều loại da." if user_skin_type == "Chưa xác định loại da" else ""}
+                            DANH SÁCH SẢN PHẨM TRONG KHO:
+                            {knowledge_base}
+                            
+                            NHIỆM VỤ:
+                            1. Tư vấn routine khoa học ngắn gọn bằng sản phẩm có sẵn ở trên.
+                            2. Cuối câu hỏi KHÁCH CÓ HÀI LÒNG VÀ MUỐN THÊM CÁC SẢN PHẨM NÀY VÀO GIỎ HÀNG KHÔNG.
+                            3. Xuất ra một dòng cuối cùng ở định dạng chính xác như sau: [RECOMMEND: tên_sản_phẩm_1, tên_sản_phẩm_2] để hệ thống ghi nhớ.
+                            """
+                            
+                            genai.configure(api_key=GEMINI_API_KEY)
+                            model = genai.GenerativeModel(
+                                model_name='gemini-2.5-flash',
+                                system_instruction=prompt_he_thong
+                            )
+                            response = generate_content_with_retries(
+                                model=model,
+                                contents=prompt,
+                                config=types.GenerationConfig(temperature=0.4),
+                                max_retries=3
+                            )
+                            raw_answer = getattr(response, 'text', str(response))
+                            
+                            # Bóc tách tag sản phẩm
+                            match_rec = re.search(r'\[RECOMMEND:\s*(.*?)\]', raw_answer)
+                            if match_rec:
+                                products_extracted = [p.strip() for p in match_rec.group(1).split(',')]
+                                st.session_state.recommended_products = products_extracted
+                                clean_answer = re.sub(r'\[RECOMMEND:\s*(.*?)\]', '', raw_answer).strip()
+                            else:
+                                clean_answer = raw_answer
+                            
+                            # Hiển thị kết quả sạch lên màn hình và lưu trạng thái cuộc gọi
+                            message_placeholder.markdown(clean_answer)
+                            st.session_state.messages.append({"role": "assistant", "content": clean_answer})
+                            
+                        except Exception as e:
+                            message_placeholder.error(f"Lỗi kết nối AI: {e}. Thử lại hoặc xóa lịch sử chat nhé!")
