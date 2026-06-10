@@ -429,8 +429,15 @@ elif page == "💬 Tư Vấn AI":
     elif is_agreeing and not st.session_state.recommended_products:
             with st.chat_message("assistant"):
                 answer = "Mình chưa xác định được sản phẩm nào. Bạn hãy mô tả tình trạng da để mình tư vấn nhé!"
-                st.markdown(answer)
-                st.session_state.messages.append({"role": "assistant", "content": answer})
+# 1. Lưu câu trả lời của AI vào lịch sử trước
+                st.session_state.messages.append({"role": "assistant", "content": clean_answer})
+                        
+# 2. Ép hiển thị ra màn hình ngay trong lượt chạy này
+                st.markdown(clean_answer)
+                        
+                        # 3. Gọi lệnh rerun chuẩn của Streamlit để cập nhật toàn bộ lịch sử chat lên giao diện
+                st.js_on_eway = True # Thao tác phụ đảm bảo state không bị kẹt
+                st.rerun()
             
 
     else:
