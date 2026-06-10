@@ -391,15 +391,15 @@ elif page == "💬 Tư Vấn AI":
             st.markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
 
-        GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
+    GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY")
 
-if not GEMINI_API_KEY:
-    st.error("❌ Chưa cấu hình GEMINI_API_KEY trong Streamlit Secrets.")
+    if not GEMINI_API_KEY:
+     st.error("❌ Chưa cấu hình GEMINI_API_KEY trong Streamlit Secrets.")
     st.stop()
 
-        knowledge_base = df_products.to_string(index=False) if not df_products.empty else "Không có dữ liệu."
+    knowledge_base = df_products.to_string(index=False) if not df_products.empty else "Không có dữ liệu."
 
-        AGREE_KEYWORDS = [
+    AGREE_KEYWORDS = [
             "thêm vào giỏ", "cho vào giỏ", "bỏ vào giỏ", "thêm vào",
             "thêm đi", "lấy đi", "lấy hết", "mua đi", "mua hết",
             "chốt đi", "chốt luôn", "lấy cho chị", "lấy cho mình",
@@ -409,14 +409,14 @@ if not GEMINI_API_KEY:
             "lấy sp", "muốn mua"
         ]
 
-        is_agreeing = False
-        if len(prompt.strip()) <= 30:
+    is_agreeing = False
+    if len(prompt.strip()) <= 30:
             is_agreeing = any(word in prompt.lower() for word in AGREE_KEYWORDS)
 
-        if not is_agreeing:
+    if not is_agreeing:
             st.session_state.recommended_products = []
 
-        if is_agreeing and st.session_state.recommended_products:
+    if is_agreeing and st.session_state.recommended_products:
             with st.chat_message("assistant"):
                 with st.spinner("Đang thêm vào giỏ hàng..."):
                     result_msg = add_product_to_cart(st.session_state.recommended_products)
@@ -426,14 +426,14 @@ if not GEMINI_API_KEY:
                     st.session_state.recommended_products = []
             st.rerun()
 
-        elif is_agreeing and not st.session_state.recommended_products:
+    elif is_agreeing and not st.session_state.recommended_products:
             with st.chat_message("assistant"):
                 answer = "Mình chưa xác định được sản phẩm nào. Bạn hãy mô tả tình trạng da để mình tư vấn nhé!"
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
             st.rerun()
 
-        else:
+    else:
             prompt_he_thong = f"""
             Bạn là chuyên gia tư vấn Skincare chuyên nghiệp. Khách tên {user_name}, {user_age} tuổi, loại da: {user_skin_type}.
             {"Khách chưa biết loại da của mình - hãy hỏi thêm về tình trạng da (bóng dầu, khô, mụn...) để tư vấn phù hợp, hoặc gợi ý sản phẩm phù hợp cho nhiều loại da." if user_skin_type == "Chưa xác định loại da" else ""}
